@@ -56,6 +56,8 @@
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
+/* Quick repeated taps (▶ ▶ ▶) shouldn't double-tap-zoom on iPad */
+button, summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 body {
   margin: 0;
   background: var(--bg);
