@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Round It!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Lexend:wght@400;600&display=swap">
+<style>
+/* Layout: one centred column under a sticky ruler-yellow bar. The number line is the star of every screen. */
+:root {
+  --bg: #F2F5FA;
+  --surface: #FFFFFF;
+  --ink: #1B2232;
+  --muted: #566079;
+  --line: #C9D2E2;
+  --tape: #FFC83D;
+  --tape-deep: #D99A00;
+  --on-tape: #1B2232;
+  --down: #13807E;
+  --down-soft: #D2EEEC;
+  --up: #C24A24;
+  --up-soft: #FADCD2;
+  --on-side: #FFFFFF;
+  --good: #23824F;
+  --good-soft: #D9F1E3;
+  --hint-soft: #FFF1CC;
+  --focus: #2F6BFF;
+  --font-display: "Fredoka", ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --font-body: "Lexend", Verdana, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121826;
+    --surface: #1C2333;
+    --ink: #EDF0F7;
+    --muted: #A5AEC2;
+    --line: #36405A;
+    --tape: #FFCB47;
+    --tape-deep: #B98500;
+    --on-tape: #1B2232;
+    --down: #3FC1BC;
+    --down-soft: #173A3C;
+    --up: #FF8A62;
+    --up-soft: #45261C;
+    --on-side: #121826;
+    --good: #58CF8B;
+    --good-soft: #173A28;
+    --hint-soft: #3A3115;
+    --focus: #8FB0FF;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.55;
+}
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; margin: 0; text-wrap: balance; font-weight: 600; }
+p { margin: 0; }
+a { color: var(--down); }
+[hidden] { display: none !important; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--tape); color: var(--on-tape);
+  border-bottom: 4px solid var(--tape-deep);
+}
+.topbar-inner {
+  max-width: 46rem; margin: 0 auto; padding: 8px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.brand {
+  font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: 0.01em;
+  background: none; border: 0; color: inherit; cursor: pointer; padding: 4px 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.brand-ruler { display: block; width: 34px; height: 22px; }
+.nav { display: flex; gap: 8px; }
+.nav button {
+  font-family: var(--font-display); font-size: 18px; font-weight: 600;
+  background: transparent; color: var(--on-tape);
+  border: 3px solid var(--on-tape); border-radius: 999px;
+  min-height: 44px; padding: 4px 16px; cursor: pointer;
+}
+.nav button[aria-current="page"] { background: var(--on-tape); color: var(--tape); }
+
+main {
+  max-width: 46rem; margin: 0 auto;
+  padding-inline: 16px; padding-block: 24px 72px;
+}
+.screen { display: grid; gap: 22px; }
+
+.card {
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  padding: 20px;
+  display: grid; gap: 14px;
+  min-width: 0;
+}
+.eyebrow {
+  font-family: var(--font-display); font-weight: 600; font-size: 15px;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+}
+
+/* Buttons */
+.btn {
+  font-family: var(--font-display); font-weight: 600; font-size: 20px;
+  min-height: 52px; padding: 8px 24px;
+  border-radius: 999px; border: 3px solid transparent;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform 0.08s ease;
+  color: var(--ink); background: var(--surface);
+}
+.btn:active { transform: translateY(2px); }
+.btn-primary { background: var(--tape); color: var(--on-tape); box-shadow: 0 4px 0 var(--tape-deep); }
+.btn-primary:active { box-shadow: 0 2px 0 var(--tape-deep); }
+.btn-ghost { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.btn-down { background: var(--down); color: var(--on-side); }
+.btn-up { background: var(--up); color: var(--on-side); }
+.btn-big { font-size: 28px; min-height: 64px; min-width: 7.5rem; }
+.btn:disabled { opacity: 0.45; cursor: default; transform: none; }
+button:focus-visible, input:focus-visible, summary:focus-visible, svg:focus-visible, a:focus-visible {
+  outline: 4px solid var(--focus); outline-offset: 3px;
+}
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.speak {
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  background: var(--surface); color: var(--ink);
+  border: 2px solid var(--line); border-radius: 999px;
+  min-height: 44px; padding: 4px 14px; cursor: pointer; flex-shrink: 0;
+}
+
+/* Number line */
+.nl { width: 100%; height: auto; display: block; overflow: visible; }
+.nl-wrap { min-width: 0; }
+.nl-zone-down { fill: var(--down-soft); }
+.nl-zone-up { fill: var(--up-soft); }
+.nl-axis { stroke: var(--ink); stroke-linecap: round; }
+.nl-tick { stroke: var(--ink); stroke-linecap: round; }
+.nl-text { font-family: var(--font-display); fill: var(--ink); font-weight: 600; }
+.nl-minor { fill: var(--muted); font-weight: 500; }
+.nl-lo { fill: var(--down); }
+.nl-hi { fill: var(--up); }
+.nl-midline { stroke: var(--muted); }
+.nl-midtext { fill: var(--muted); }
+.nl-pin { stroke: var(--ink); }
+.nl-dot { fill: var(--ink); }
+.nl-pill { fill: var(--tape); }
+.nl-pill-text { fill: var(--on-tape); }
+.nl-arrow { fill: none; stroke-linecap: round; }
+.nl-arrow.down { stroke: var(--down); }
+.nl-arrow.up { stroke: var(--up); }
+.nl-head.down { fill: var(--down); }
+.nl-head.up { fill: var(--up); }
+.nl-target { fill: none; }
+.nl-target.down { stroke: var(--down); }
+.nl-target.up { stroke: var(--up); }
+.nl-hit { fill: transparent; cursor: grab; }
+.nl-interactive { touch-action: none; cursor: grab; border-radius: 12px; }
+@media (max-width: 560px) { .nl-minor { display: none; } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 16px; color: var(--muted); }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; }
+.swatch.down { background: var(--down-soft); border: 2px solid var(--down); }
+.swatch.up { background: var(--up-soft); border: 2px solid var(--up); }
+
+/* Home */
+.hero { display: grid; gap: 12px; }
+.hero h1 { font-size: clamp(36px, 8vw, 54px); font-weight: 700; }
+.hero p.lede { font-size: 20px; color: var(--muted); max-width: 34rem; }
+.frame { font-size: 20px; }
+.frame strong { font-family: var(--font-display); font-weight: 600; }
+.c-down { color: var(--down); }
+.c-up { color: var(--up); }
+
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; counter-reset: step; }
+.steps li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; counter-increment: step; }
+.steps li::before {
+  content: counter(step);
+  font-family: var(--font-display); font-weight: 700; font-size: 20px;
+  width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--tape); color: var(--on-tape);
+}
+.rule {
+  background: var(--hint-soft); border-radius: 14px; padding: 12px 16px;
+  font-size: 18px;
+}
+
+.levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 14px; }
+.level {
+  text-align: left; font: inherit; color: var(--ink);
+  background: var(--surface); border: 2px solid var(--line); border-radius: 20px;
+  padding: 16px 18px; cursor: pointer;
+  display: grid; gap: 6px; min-height: 9rem; align-content: start;
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+.level:hover { border-color: var(--tape-deep); }
+.level:active { transform: translateY(2px); }
+.level-no { font-family: var(--font-display); font-size: 15px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.level-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; }
+.level-blurb { font-size: 16px; color: var(--muted); }
+.stars { font-size: 26px; letter-spacing: 2px; color: var(--line); line-height: 1; }
+.stars .on { color: var(--tape-deep); }
+.total { font-family: var(--font-display); font-size: 18px; color: var(--muted); }
+
+details.grown-ups summary {
+  font-family: var(--font-display); font-weight: 600; font-size: 20px; cursor: pointer; min-height: 44px;
+  display: flex; align-items: center;
+}
+details.grown-ups .notes { display: grid; gap: 12px; font-size: 17px; padding-top: 8px; }
+details.grown-ups h3 { font-size: 19px; margin-top: 6px; }
+details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+
+/* Explore */
+.segmented { display: flex; flex-wrap: wrap; gap: 8px; }
+.segmented button {
+  font-family: var(--font-display); font-weight: 600; font-size: 18px;
+  min-height: 48px; padding: 6px 18px; border-radius: 999px; cursor: pointer;
+  background: var(--surface); color: var(--ink); border: 3px solid var(--line);
+}
+.segmented button[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.big-number {
+  font-family: var(--font-display); font-weight: 700; font-size: clamp(56px, 16vw, 96px);
+  line-height: 1; font-variant-numeric: tabular-nums; text-align: center;
+}
+.big-number .deciding { border-radius: 10px; padding: 0 4px; }
+.big-number .deciding.down { background: var(--down-soft); color: var(--down); }
+.big-number .deciding.up { background: var(--up-soft); color: var(--up); }
+.big-number .place { text-decoration: underline; text-decoration-thickness: 6px; text-underline-offset: 8px; text-decoration-color: var(--tape-deep); }
+.number-key { text-align: center; font-size: 16px; color: var(--muted); }
+.stepper { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.stepper .btn { min-width: 64px; font-size: 26px; }
+.ex-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.ex-form label { font-family: var(--font-display); font-weight: 600; }
+.input {
+  font-family: var(--font-display); font-weight: 600; font-size: 24px;
+  width: 8rem; min-height: 52px; padding: 6px 12px; border-radius: 14px;
+  border: 3px solid var(--line); background: var(--surface); color: var(--ink);
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+.halfway-note {
+  background: var(--hint-soft); border-radius: 14px; padding: 12px 16px; font-size: 18px;
+  font-family: var(--font-display); font-weight: 600;
+}
+.sentence-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.hill { width: 100%; max-width: 560px; height: auto; display: block; margin: 0 auto; }
+.hill-curve { fill: none; stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.hill-dot { fill: var(--surface); stroke: var(--line); stroke-width: 3; }
+.hill-dot.on.down { fill: var(--down); stroke: var(--down); }
+.hill-dot.on.up { fill: var(--up); stroke: var(--up); }
+.hill-num { font-family: var(--font-display); font-weight: 600; font-size: 22px; fill: var(--ink); }
+.hill-num.on { fill: var(--on-side); font-size: 26px; }
+.hill-label { font-family: var(--font-display); font-weight: 600; font-size: 18px; }
+.hill-label.down { fill: var(--down); }
+.hill-label.up { fill: var(--up); }
+
+/* Practise */
+.q-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.q-level { font-family: var(--font-display); font-weight: 600; font-size: 20px; }
+.dots { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.dots li { width: 16px; height: 16px; border-radius: 50%; background: var(--line); }
+.dots li.current { background: var(--tape); box-shadow: 0 0 0 3px var(--tape-deep); }
+.dots li.good { background: var(--good); }
+.dots li.help { background: var(--tape-deep); }
+.q-count { font-family: var(--font-display); font-size: 16px; color: var(--muted); font-weight: 600; }
+.q-prompt-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.q-prompt { font-size: clamp(26px, 6vw, 34px); }
+.q-sub { font-size: 19px; }
+.choices { display: flex; flex-wrap: wrap; gap: 12px; }
+.choices .btn { flex: 1 1 7rem; }
+.answer-form { display: grid; gap: 8px; }
+.answer-form label { font-family: var(--font-display); font-weight: 600; }
+.answer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.answer-row .affix { font-family: var(--font-display); font-weight: 600; font-size: 26px; }
+.answer-row .input { width: 9rem; font-size: 28px; }
+.feedback { border-radius: 16px; padding: 14px 16px; display: grid; gap: 10px; font-size: 19px; }
+.feedback:empty { display: none; }
+.feedback.good { background: var(--good-soft); }
+.feedback.hint { background: var(--hint-soft); }
+.feedback .headline { font-family: var(--font-display); font-weight: 700; font-size: 24px; }
+.feedback.good .headline { color: var(--good); }
+
+.done { text-align: center; justify-items: center; }
+.done .stars { font-size: 64px; letter-spacing: 6px; }
+.done h2 { font-size: 36px; }
+
+#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; width: 100%; height: 100%; }
+
+@media (max-width: 480px) {
+  body { font-size: 17px; }
+  .brand { font-size: 22px; gap: 8px; }
+  .brand-ruler { width: 28px; }
+  .nav { gap: 6px; }
+  .nav button { font-size: 16px; padding: 4px 12px; }
+  .stepper { flex-wrap: nowrap; gap: 8px; }
+  .stepper .btn { padding-inline: 16px; white-space: nowrap; font-size: 22px; }
+  .hill-label { font-size: 26px; }
+  .hill-num { font-size: 26px; }
+  .hill-num.on { font-size: 30px; }
+  .card { padding: 16px; }
+  .btn-big { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="brand" data-action="go" data-screen="home" aria-label="Round It! home">
+      <svg class="brand-ruler" viewBox="0 0 34 22" aria-hidden="true">
+        <rect x="1" y="5" width="32" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M7 5v6M12 5v4M17 5v8M22 5v4M27 5v6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      Round It!
+    </button>
+    <nav class="nav" aria-label="Main">
+      <button data-action="go" data-screen="home" aria-current="page">Levels</button>
+      <button data-action="go" data-screen="explore">Explore</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- HOME -->
+  <section class="screen" id="screen-home" aria-labelledby="home-title">
+    <div class="hero">
+      <h1 id="home-title">Round It!</h1>
+      <p class="lede">Learn to round numbers to the nearest 10, 100 and 1,000. Find the number on the number line, then jump to the closest end.</p>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">What is rounding?</p>
+      <p>Rounding swaps a number for a nearby round number that is easier to use. If you have 47 stickers, you have <strong>about 50</strong> stickers.</p>
+      <div class="nl-wrap" id="home-line"></div>
+      <div class="sentence-row">
+        <p class="frame" id="home-frame"></p>
+        <button class="speak" data-action="speak" data-target="home-frame" hidden>🔊 Read to me</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">How to round</p>
+      <ol class="steps">
+        <li><span>Find the two round numbers it sits between. <strong>47</strong> is between <strong>40</strong> and <strong>50</strong>.</span></li>
+        <li><span>Find the halfway point. Halfway between 40 and 50 is <strong>45</strong>.</span></li>
+        <li><span>Pick the round number it is closer to. 47 is past halfway, so it rounds to <strong>50</strong>.</span></li>
+      </ol>
+      <p class="rule"><strong>The halfway rule:</strong> a number exactly halfway, like 45, 350 or 2,500, always rounds <strong>up</strong>.</p>
+      <div class="row"><button class="btn btn-primary" data-action="go" data-screen="explore">Explore the number line</button></div>
+    </div>
+
+    <div class="screen" style="gap:14px">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="font-size:28px">Practise</h2>
+        <span class="total" id="total-stars"></span>
+      </div>
+      <div class="levels" id="levels"></div>
+    </div>
+
+    <details class="card grown-ups">
+      <summary>For grown-ups</summary>
+      <div class="notes">
+        <p>Round It! follows the National Curriculum in England. Year 4 pupils are expected to <em>"round any number to the nearest 10, 100 or 1,000"</em>. Year 3 builds the groundwork: placing 3-digit numbers on a number line and naming the previous and next multiple of 10 and 100.</p>
+        <h3>How the app teaches</h3>
+        <ul>
+          <li><strong>Meaning before the rule.</strong> Children first find the two multiples either side, the halfway point, and which end is closer. The digit shortcut (0–4 round down, 5–9 round up) comes afterwards, on the Explore screen.</li>
+          <li><strong>Same order as White Rose and Oak National:</strong> nearest 10, then 100, then 1,000. After that, one number three ways (6,347 → 6,350, 6,300, 6,000) and real measures (2,800 g is about 3 kg).</li>
+          <li><strong>Support that fades.</strong> The first three questions in Levels 1–4 are split into two tap-to-answer steps. Later questions are typed, and the number line is available under "Show me the number line".</li>
+          <li><strong>No timers and nothing taken away.</strong> Stars count answers right first time: 9–10 gets 3 stars, 7–8 gets 2, and finishing always gets 1.</li>
+        </ul>
+        <h3>Common mistakes it looks out for</h3>
+        <ul>
+          <li>Not changing every digit: 4,698 to the nearest 100 written as 4,798 instead of 4,700.</li>
+          <li>Picking the wrong neighbour, or always rounding up.</li>
+          <li>Rounding to the wrong place (to the nearest 100 when asked for the nearest 10).</li>
+          <li>Rounding a halfway number down.</li>
+          <li>Crossing a boundary: 95 → 100, 996 → 1,000, 9,960 → 10,000, and 4 → 0.</li>
+        </ul>
+        <h3>Sources</h3>
+        <ul>
+          <li><a href="https://assets.publishing.service.gov.uk/media/5a7da548ed915d2ac884cb07/PRIMARY_national_curriculum_-_Mathematics_220714.pdf" target="_blank" rel="noopener">DfE National Curriculum: Mathematics, KS1 and KS2</a></li>
+          <li><a href="https://assets.publishing.service.gov.uk/media/61409475e90e07043fea1c45/Maths_guidance_year_3.pdf" target="_blank" rel="noopener">DfE Mathematics guidance: Year 3</a> and <a href="https://assets.publishing.service.gov.uk/media/6009a9888fa8f5296a72aad7/Maths_guidance_year_4.pdf" target="_blank" rel="noopener">Year 4</a></li>
+          <li><a href="https://www.thenational.academy/teachers/programmes/maths-primary-ks2/units/comparing-ordering-and-rounding-4-digit-numbers/lessons/round-a-4-digit-number-to-the-nearest-thousand-hundred-and-ten" target="_blank" rel="noopener">Oak National Academy: round a 4-digit number</a></li>
+          <li><a href="https://teachingintheheartofflorida.com/2019/06/why-is-rounding-numbers-to-the-nearest-10-and-100-so-hard-3-ways-you-can-make-it-easier-for-students.html" target="_blank" rel="noopener">Why is rounding so hard?</a></li>
+        </ul>
+        <div class="row">
+          <button class="btn btn-ghost" id="reset-btn" data-action="reset">Reset progress</button>
+          <span id="reset-msg" class="total" aria-live="polite"></span>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- EXPLORE -->
+  <section class="screen" id="screen-explore" aria-labelledby="explore-title" hidden>
+    <div class="hero">
+      <h1 id="explore-title" style="font-size:clamp(32px,7vw,44px)">Explore the number line</h1>
+      <p class="lede">Drag the dot, or use the arrow buttons. Watch which end it jumps to.</p>
+    </div>
+
+    <div class="segmented" role="group" aria-label="Round to the nearest">
+      <button data-action="unit" data-unit="10" aria-pressed="true">Nearest 10</button>
+      <button data-action="unit" data-unit="100" aria-pressed="false">Nearest 100</button>
+      <button data-action="unit" data-unit="1000" aria-pressed="false">Nearest 1,000</button>
+    </div>
+
+    <div class="card">
+      <div class="big-number" id="ex-number" aria-live="polite"></div>
+      <p class="number-key" id="ex-key"></p>
+      <div class="nl-wrap">
+        <svg class="nl nl-interactive" id="ex-line" viewBox="0 0 1000 200" role="slider" tabindex="0" aria-label="Number line. Use the left and right arrow keys to move the number."></svg>
+      </div>
+      <div class="legend">
+        <span><span class="swatch down"></span>Rounds down</span>
+        <span><span class="swatch up"></span>Rounds up</span>
+      </div>
+      <div class="stepper">
+        <button class="btn btn-ghost" data-action="ex-step" data-dir="-1" aria-label="Smaller number" id="ex-minus">◀</button>
+        <button class="btn btn-ghost" data-action="ex-random">Surprise me</button>
+        <button class="btn btn-ghost" data-action="ex-step" data-dir="1" aria-label="Bigger number" id="ex-plus">▶</button>
+      </div>
+      <form class="ex-form" id="ex-form">
+        <label for="ex-input">Try your own number</label>
+        <input class="input" id="ex-input" inputmode="numeric" autocomplete="off" placeholder="e.g. 386" maxlength="6">
+        <button class="btn btn-primary" type="submit">Show</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="sentence-row">
+        <p class="frame" id="ex-frame" aria-live="polite"></p>
+        <button class="speak" data-action="speak" data-target="ex-frame" hidden>🔊 Read to me</button>
+      </div>
+      <p class="halfway-note" id="ex-halfway" hidden>Exactly halfway! It's the same distance from both ends, so we use the halfway rule: halfway numbers round <strong>up</strong>.</p>
+    </div>
+
+    <div class="card">
+      <p class="eyebrow">Shortcut: the rounding hill</p>
+      <p id="hill-text"></p>
+      <div id="hill"></div>
+      <p style="font-size:16px;color:var(--muted)">Only use the shortcut once you know <em>why</em> it works. The number line shows the reason.</p>
+    </div>
+  </section>
+
+  <!-- PRACTISE -->
+  <section class="screen" id="screen-practise" aria-labelledby="q-prompt" hidden>
+    <div class="q-top">
+      <button class="btn btn-ghost" data-action="go" data-screen="home" style="min-height:44px;font-size:17px;padding:4px 16px">← Levels</button>
+      <span class="q-level" id="q-level"></span>
+      <ol class="dots" id="q-dots" aria-hidden="true"></ol>
+    </div>
+    <div class="card" id="q-card">
+      <p class="q-count" id="q-count"></p>
+      <div class="q-prompt-row">
+        <h2 class="q-prompt" id="q-prompt"></h2>
+        <button class="speak" data-action="speak-q" hidden>🔊 Read to me</button>
+      </div>
+      <div id="q-body" style="display:grid;gap:14px"></div>
+      <div class="feedback" id="q-feedback" aria-live="polite"></div>
+      <div class="row" id="q-actions"></div>
+    </div>
+  </section>
+
+  <!-- LEVEL COMPLETE -->
+  <section class="screen" id="screen-done" aria-labelledby="done-title" hidden>
+    <div class="card done" id="done-card"></div>
+  </section>
+
+</main>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+// ==LOGIC START== (pure functions, no DOM; tested by test-logic.mjs)
+const UNIT_PLURAL = { 10: 'tens', 100: 'hundreds', 1000: 'thousands' };
+const DECIDING_PLACE = { 10: 'ones', 100: 'tens', 1000: 'hundreds' };
+
+function fmt(n) { return n.toLocaleString('en-GB'); }
+
+// Round to the nearest unit. Halfway rounds up. Whole numbers 0 and above.
+function roundTo(n, unit) { return Math.floor((n + unit / 2) / unit) * unit; }
+
+// The multiples either side of n. If n is already a multiple, both are n.
+function neighbours(n, unit) {
+  const lo = Math.floor(n / unit) * unit;
+  return [lo, lo === n ? n : lo + unit];
+}
+
+function isHalfway(n, unit) { return n % unit === unit / 2; }
+
+// The digit that decides up or down (ones digit when rounding to 10, etc.)
+function decidingDigit(n, unit) { return Math.floor(n / (unit / 10)) % 10; }
+
+// Turn typed text into a whole number, or NaN. Accepts "1,000", "£50", "3000 g".
+function parseAnswer(text) {
+  const s = String(text).trim().replace(/[£,\s]/g, '').replace(/(kg|ml|g|m|l)$/i, '');
+  return /^\d+$/.test(s) ? Number(s) : NaN;
+}
+
+// Work out what kind of mistake an answer is, so feedback can be specific.
+function diagnose(n, unit, answer) {
+  if (!Number.isFinite(answer)) return 'notNumber';
+  const correct = roundTo(n, unit);
+  if (answer === correct) return 'correct';
+  const [lo, hi] = neighbours(n, unit);
+  if (isHalfway(n, unit) && answer === lo) return 'halfwayDown';
+  if (answer === lo || answer === hi) return 'wrongWay';
+  for (const u of [10, 100, 1000]) {
+    if (u !== unit && answer === roundTo(n, u)) return 'wrongPlace:' + u;
+  }
+  if (answer % unit !== 0) return 'notMultiple';
+  return 'tooFar';
+}
+
+function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+const LEVELS = [
+  { no: 1, title: 'Nearest 10', blurb: '2-digit numbers like 47', unit: 10 },
+  { no: 2, title: 'Nearest 10', blurb: '3-digit numbers like 386', unit: 10 },
+  { no: 3, title: 'Nearest 100', blurb: 'Numbers like 750 and 4,280', unit: 100 },
+  { no: 4, title: 'Nearest 1,000', blurb: '4-digit numbers like 6,347', unit: 1000 },
+  { no: 5, title: 'Mix it up', blurb: 'One number three ways, plus £, g, ml and m', unit: null },
+];
+
+const LEVEL_SPECS = {
+  1: { unit: 10, normal: () => randInt(11, 94), halfway: () => randInt(1, 8) * 10 + 5,
+       edges: [() => randInt(1, 4), () => randInt(96, 99)] },
+  2: { unit: 10, normal: () => randInt(101, 989), halfway: () => randInt(10, 98) * 10 + 5,
+       edges: [() => randInt(995, 999)] },
+  3: { unit: 100, normal: () => (Math.random() < 0.5 ? randInt(101, 949) : randInt(1001, 9949)),
+       halfway: () => (Math.random() < 0.5 ? randInt(1, 8) : randInt(10, 99)) * 100 + 50,
+       edges: [() => (Math.random() < 0.5 ? randInt(951, 999) : randInt(9951, 9999))] },
+  4: { unit: 1000, normal: () => randInt(1001, 9499), halfway: () => randInt(1, 8) * 1000 + 500,
+       edges: [() => randInt(9501, 9999)] },
+};
+
+const QUESTIONS_PER_LEVEL = 10;
+const GUIDED_COUNT = 3;
+
+// Build a level's 10 questions. Levels 1–4 always include a halfway number and
+// at least one boundary-crossing number, placed after the guided questions.
+function makeLevel(no) {
+  const used = new Set();
+  const fresh = (gen, unit) => {
+    for (let k = 0; k < 500; k++) {
+      const v = gen();
+      if (v % unit !== 0 && !used.has(v)) { used.add(v); return v; }
+    }
+    throw new Error('Could not make a fresh number');
+  };
+
+  if (no === 5) return makeMixedLevel(fresh);
+
+  const spec = LEVEL_SPECS[no];
+  const specials = [spec.halfway, ...spec.edges];
+  const slots = shuffle([3, 4, 5, 6, 7, 8, 9]).slice(0, specials.length);
+  const qs = [];
+  for (let i = 0; i < QUESTIONS_PER_LEVEL; i++) {
+    const s = slots.indexOf(i);
+    const gen = s === -1 ? spec.normal : specials[s];
+    qs.push({ n: fresh(gen, spec.unit), unit: spec.unit, guided: i < GUIDED_COUNT });
+  }
+  return qs;
+}
+
+function makeMixedLevel(fresh) {
+  const threeWays = (n) => [10, 100, 1000].map(unit => ({
+    n, unit, guided: false, tag: 'Round ' + fmt(n) + ' three ways',
+  }));
+  const a = fresh(() => randInt(1001, 9989), 10);
+  const b = fresh(() => randInt(1001, 9989), 10);
+
+  const money = Math.random() < 0.5
+    ? { n: fresh(() => randInt(101, 999), 10), unit: 10, item: 'A scooter' }
+    : { n: fresh(() => randInt(1001, 2999), 100), unit: 100, item: 'A holiday' };
+  const moneyQ = {
+    n: money.n, unit: money.unit, guided: false, prefix: '£',
+    text: money.item + ' costs £' + fmt(money.n) + '. Round the price to the nearest £' + fmt(money.unit) + '.',
+  };
+  const grams = fresh(() => randInt(11, 49) * 100, 1000);
+  const gramsQ = {
+    n: grams, unit: 1000, guided: false, suffix: 'g',
+    text: 'A bag of flour weighs ' + fmt(grams) + ' g. Round it to the nearest 1,000 g.',
+    note: '1,000 g is 1 kilogram.',
+    after: (c) => fmt(c) + ' g is ' + (c / 1000) + ' kg.',
+  };
+  const ml = fresh(() => randInt(1, 8) * 1000 + 500, 1000);
+  const mlQ = {
+    n: ml, unit: 1000, guided: false, suffix: 'ml',
+    text: 'A big bottle of juice holds ' + fmt(ml) + ' ml. Round it to the nearest 1,000 ml.',
+    note: '1,000 ml is 1 litre.',
+    after: (c) => fmt(c) + ' ml is ' + (c / 1000) + (c === 1000 ? ' litre.' : ' litres.'),
+  };
+  const metres = fresh(() => randInt(1, 8) * 1000 + randInt(951, 999), 100);
+  const metresQ = {
+    n: metres, unit: 100, guided: false, suffix: 'm',
+    text: 'It is ' + fmt(metres) + ' m from home to the park. Round the distance to the nearest 100 m.',
+  };
+  return [...threeWays(a), moneyQ, gramsQ, ...threeWays(b), mlQ, metresQ];
+}
+
+function starsFor(score) { return score >= 9 ? 3 : score >= 7 ? 2 : 1; }
+// ==LOGIC END==
+
+
+/* ---------- Display helpers ---------- */
+const $ = (id) => document.getElementById(id);
+const show = (v, q) => (q && q.prefix ? q.prefix : '') + fmt(v) + (q && q.suffix ? ' ' + q.suffix : '');
+const unitName = (q) => (q.prefix || '') + fmt(q.unit) + (q.suffix ? ' ' + q.suffix : '');
+const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function promptFor(q) { return q.text || 'Round ' + fmt(q.n) + ' to the nearest ' + fmt(q.unit) + '.'; }
+
+// "47 is between 40 and 50. It is closer to 50, so ..." as HTML
+function sentenceFrame(n, unit, q) {
+  const c = roundTo(n, unit);
+  if (n % unit === 0) {
+    return '<strong>' + show(n, q) + '</strong> is already a round number of ' + UNIT_PLURAL[unit] +
+      '. Rounded to the nearest ' + (q ? unitName(q) : fmt(unit)) + ', it stays <strong>' + show(n, q) + '</strong>.';
+  }
+  const [lo, hi] = neighbours(n, unit);
+  const cls = c === lo ? 'c-down' : 'c-up';
+  const middle = isHalfway(n, unit)
+    ? 'It is exactly halfway, so it rounds <strong class="c-up">up</strong>'
+    : 'It is closer to <strong class="' + cls + '">' + show(c, q) + '</strong>';
+  return '<strong>' + show(n, q) + '</strong> is between <strong class="c-down">' + show(lo, q) +
+    '</strong> and <strong class="c-up">' + show(hi, q) + '</strong>. ' + middle +
+    ', so <strong>' + show(n, q) + '</strong> rounded to the nearest ' + (q ? unitName(q) : fmt(unit)) +
+    ' is <strong class="' + cls + '">' + show(c, q) + '</strong>.';
+}
+
+/* ---------- Number line (inline SVG) ---------- */
+// Phones get a taller drawing with bigger labels, so the text stays readable when the SVG is scaled down.
+const narrowQuery = window.matchMedia('(max-width: 560px)');
+function lineLayout() {
+  const f = narrowQuery.matches ? 1.9 : 1;   // text scale
+  const k = 1 + (f - 1) / 2;                  // stroke and shape scale
+  const X0 = Math.round(40 + 40 * f), W = 1000 - 2 * X0;
+  const pillH = 42 * f, AXIS = Math.round(12 + pillH + 66);
+  const midY = AXIS + 24 + 20 * f, endY = AXIS + 24 + 32 * f, halfY = midY + 6 + 16 * f;
+  return { f, k, X0, W, AXIS, pillH, midY, endY, halfY, H: Math.round(halfY + 12) };
+}
+
+let lineCount = 0;
+function numberLineInner({ n, unit, lo, arrow = true, marker = true }) {
+  const id = 'nl' + (++lineCount);
+  if (lo === undefined) lo = Math.floor(n / unit) * unit;
+  const hi = lo + unit, mid = lo + unit / 2, step = unit / 10;
+  const { f, k, X0, W, AXIS, pillH, midY, endY, halfY } = lineLayout();
+  const x = (v) => X0 + ((v - lo) / unit) * W;
+  const c = roundTo(n, unit);
+  const dir = c < n ? 'down' : 'up';
+  const zoneH = 36 * k;
+  let s = '';
+
+  s += '<defs><marker id="' + id + '-ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">' +
+       '<path d="M0,0 L10,5 L0,10 z" class="nl-head ' + dir + '"/></marker></defs>';
+  s += '<rect class="nl-zone-down" x="' + x(lo) + '" y="' + (AXIS - zoneH / 2) + '" width="' + (x(mid) - x(lo)) + '" height="' + zoneH + '" rx="8"/>';
+  s += '<rect class="nl-zone-up" x="' + x(mid) + '" y="' + (AXIS - zoneH / 2) + '" width="' + (x(hi) - x(mid)) + '" height="' + zoneH + '" rx="8"/>';
+  s += '<line class="nl-midline" x1="' + x(mid) + '" x2="' + x(mid) + '" y1="' + (AXIS - 54 * k) + '" y2="' + (AXIS + 26) + '" stroke-width="' + 3 * k + '" stroke-dasharray="' + 8 * k + ' ' + 8 * k + '"/>';
+  s += '<line class="nl-axis" x1="' + (X0 - 34) + '" x2="' + (X0 + W + 34) + '" y1="' + AXIS + '" y2="' + AXIS + '" stroke-width="' + 4 * k + '"/>';
+
+  for (let i = 0; i <= 10; i++) {
+    const v = lo + i * step, end = i === 0 || i === 10, half = i === 5;
+    const h = (end ? 24 : half ? 16 : 10) * k;
+    s += '<line class="nl-tick" x1="' + x(v) + '" x2="' + x(v) + '" y1="' + (AXIS - h) + '" y2="' + (AXIS + h) + '" stroke-width="' + 3 * k + '"/>';
+    if (!end && !half) {
+      s += '<text class="nl-text nl-minor" x="' + x(v) + '" y="' + (AXIS + 40) + '" font-size="18" text-anchor="middle">' + fmt(v) + '</text>';
+    }
+  }
+  s += '<text class="nl-text nl-lo" x="' + x(lo) + '" y="' + endY + '" font-size="' + 32 * f + '" text-anchor="middle">' + fmt(lo) + '</text>';
+  s += '<text class="nl-text nl-hi" x="' + x(hi) + '" y="' + endY + '" font-size="' + 32 * f + '" text-anchor="middle">' + fmt(hi) + '</text>';
+  s += '<text class="nl-text nl-midtext" x="' + x(mid) + '" y="' + midY + '" font-size="' + 20 * f + '" text-anchor="middle">' + fmt(mid) + '</text>';
+  s += '<text class="nl-text nl-midtext" x="' + x(mid) + '" y="' + halfY + '" font-size="' + 16 * f + '" text-anchor="middle">halfway</text>';
+
+  if (arrow && c !== n) {
+    const x1 = x(n), x2 = x(c), mx = (x1 + x2) / 2;
+    const lift = Math.min(54, 20 + Math.abs(x2 - x1) / 6) * k;
+    s += '<path class="nl-arrow ' + dir + '" stroke-width="' + 5 * k + '" d="M' + x1 + ',' + (AXIS - 14 * k) + ' Q' + mx + ',' + (AXIS - 14 * k - lift * 2) +
+         ' ' + (x2 + (dir === 'up' ? -6 : 6) * k) + ',' + (AXIS - 16 * k) + '" marker-end="url(#' + id + '-ah)"/>';
+    s += '<circle class="nl-target ' + dir + '" cx="' + x2 + '" cy="' + AXIS + '" r="' + 18 * k + '" stroke-width="' + 5 * k + '"/>';
+  }
+  if (marker) {
+    const xn = x(n);
+    const label = fmt(n);
+    const w = (28 + label.length * 17) * f;
+    const px = Math.max(2, Math.min(998 - w, xn - w / 2));
+    s += '<line class="nl-pin" x1="' + xn + '" x2="' + xn + '" y1="' + (12 + pillH) + '" y2="' + AXIS + '" stroke-width="' + 3 * k + '"/>';
+    s += '<rect class="nl-pill" x="' + px + '" y="12" width="' + w + '" height="' + pillH + '" rx="' + pillH / 2 + '"/>';
+    s += '<text class="nl-text nl-pill-text" x="' + (px + w / 2) + '" y="' + (12 + pillH * 0.74) + '" font-size="' + 28 * f + '" text-anchor="middle">' + label + '</text>';
+    s += '<circle class="nl-dot" cx="' + xn + '" cy="' + AXIS + '" r="' + 11 * k + '"/>';
+  }
+  return s;
+}
+
+function numberLineSVG(opts) {
+  const lo = Math.floor(opts.n / opts.unit) * opts.unit;
+  const lbl = 'Number line from ' + fmt(lo) + ' to ' + fmt(lo + opts.unit) + ' showing ' + fmt(opts.n) +
+    (opts.arrow === false ? '' : ', which rounds to ' + fmt(roundTo(opts.n, opts.unit)));
+  return '<svg class="nl" viewBox="0 0 1000 ' + lineLayout().H + '" role="img" aria-label="' + esc(lbl) + '">' + numberLineInner(opts) + '</svg>';
+}
+
+/* ---------- Rounding hill (SVG) ---------- */
+function hillSVG(d) {
+  const P0 = [40, 200], P1 = [300, -60], P2 = [560, 200];
+  const pt = (t) => [
+    (1 - t) * (1 - t) * P0[0] + 2 * (1 - t) * t * P1[0] + t * t * P2[0],
+    (1 - t) * (1 - t) * P0[1] + 2 * (1 - t) * t * P1[1] + t * t * P2[1],
+  ];
+  let s = '<svg class="hill" viewBox="0 0 600 250" role="img" aria-label="Rounding hill. Digits 0 to 4 roll back down. Digits 5 to 9 roll over the top. The deciding digit is ' + d + '.">';
+  s += '<path class="hill-curve" d="M' + P0 + ' Q' + P1 + ' ' + P2 + '"/>';
+  for (let i = 0; i <= 9; i++) {
+    const [px, py] = pt(0.05 + i * 0.1);
+    const on = i === d, dir = i < 5 ? 'down' : 'up';
+    s += '<circle class="hill-dot ' + (on ? 'on ' + dir : '') + '" cx="' + px.toFixed(1) + '" cy="' + (py - 26).toFixed(1) + '" r="' + (on ? 25 : 19) + '"/>';
+    s += '<text class="hill-num ' + (on ? 'on' : '') + '" x="' + px.toFixed(1) + '" y="' + (py - 18).toFixed(1) + '" text-anchor="middle">' + i + '</text>';
+  }
+  s += '<text class="hill-label down" x="20" y="240">← 0 to 4: round down</text>';
+  s += '<text class="hill-label up" x="580" y="240" text-anchor="end">5 to 9: round up →</text>';
+  return s + '</svg>';
+}
+
+/* ---------- Speech ---------- */
+const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+function speak(text) {
+  if (!canSpeak) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/–/g, ' to ').replace(/←|→/g, ''));
+  u.lang = 'en-GB';
+  u.rate = 0.9;
+  const voice = window.speechSynthesis.getVoices().find(v => v.lang === 'en-GB');
+  if (voice) u.voice = voice;
+  window.speechSynthesis.speak(u);
+}
+if (canSpeak) document.querySelectorAll('.speak').forEach(b => { b.hidden = false; });
+
+/* ---------- Confetti ---------- */
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let confettiRun = 0;
+function confetti() {
+  if (reduceMotion.matches) return;
+  const runId = ++confettiRun;
+  const cv = $('confetti'), ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const css = getComputedStyle(document.documentElement);
+  const colours = ['--tape', '--down', '--up', '--good'].map(t => css.getPropertyValue(t).trim());
+  const bits = Array.from({ length: 70 }, () => ({
+    x: innerWidth / 2 + (Math.random() - 0.5) * 120, y: innerHeight * 0.45,
+    vx: (Math.random() - 0.5) * 14, vy: -Math.random() * 14 - 4,
+    r: Math.random() * Math.PI, w: 6 + Math.random() * 6, c: colours[Math.floor(Math.random() * colours.length)],
+  }));
+  const start = performance.now();
+  const wipe = () => { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.restore(); };
+  (function frame(t) {
+    if (runId !== confettiRun) return;
+    wipe();
+    for (const b of bits) {
+      b.vy += 0.45; b.x += b.vx; b.y += b.vy; b.r += 0.2;
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r);
+      ctx.fillStyle = b.c; ctx.fillRect(-b.w / 2, -b.w / 4, b.w, b.w / 2); ctx.restore();
+    }
+    if (t - start < 1400) requestAnimationFrame(frame); else wipe();
+  })(start);
+}
+
+/* ---------- Progress (saved in this browser only) ---------- */
+const STORE_KEY = 'round-it-progress-v1';
+function loadProgress() {
+  try { const p = JSON.parse(localStorage.getItem(STORE_KEY)); if (p && p.stars) return p; } catch (e) { /* storage blocked */ }
+  return { stars: {} };
+}
+function saveProgress() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(progress)); } catch (e) { /* storage blocked */ }
+}
+let progress = loadProgress();
+
+function starsHTML(k, total = 3) {
+  let s = '';
+  for (let i = 0; i < total; i++) s += i < k ? '<span class="on">★</span>' : '☆';
+  return '<span class="stars" aria-label="' + k + ' of ' + total + ' stars">' + s + '</span>';
+}
+
+/* ---------- Screens ---------- */
+const SCREENS = ['home', 'explore', 'practise', 'done'];
+function go(name) {
+  SCREENS.forEach(s => { $('screen-' + s).hidden = s !== name; });
+  document.querySelectorAll('.nav button').forEach(b => {
+    const active = b.dataset.screen === name || (name !== 'explore' && b.dataset.screen === 'home');
+    if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+  });
+  if (canSpeak) window.speechSynthesis.cancel();
+  if (name === 'home') renderHome();
+  if (name === 'explore') renderExplore();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Home ---------- */
+function renderHome() {
+  $('home-line').innerHTML = numberLineSVG({ n: 47, unit: 10 });
+  $('home-frame').innerHTML = sentenceFrame(47, 10);
+  let total = 0;
+  $('levels').innerHTML = LEVELS.map(l => {
+    const k = progress.stars[l.no] || 0;
+    total += k;
+    return '<button class="level" data-action="start" data-level="' + l.no + '">' +
+      '<span class="level-no">Level ' + l.no + '</span>' +
+      '<span class="level-title">' + l.title + '</span>' +
+      '<span class="level-blurb">' + l.blurb + '</span>' +
+      starsHTML(k) + '</button>';
+  }).join('');
+  $('total-stars').textContent = total + ' of ' + LEVELS.length * 3 + ' stars';
+}
+
+/* ---------- Explore ---------- */
+const ex = { n: 47, unit: 10, lo: 40 };
+const EX_MAX = 10000;
+
+function exSet(n, keepWindow) {
+  n = Math.max(0, Math.min(EX_MAX, Math.round(n)));
+  ex.n = n;
+  const inWindow = n >= ex.lo && n <= ex.lo + ex.unit;
+  if (!keepWindow || !inWindow) {
+    ex.lo = Math.floor(n / ex.unit) * ex.unit;
+    if (ex.lo + ex.unit > EX_MAX) ex.lo = EX_MAX - ex.unit;
+  }
+  renderExplore();
+}
+
+function numberWithDigitsHTML(n, unit) {
+  const s = fmt(n);
+  const decIndex = Math.round(Math.log10(unit / 10));
+  const dir = decidingDigit(n, unit) >= 5 ? 'up' : 'down';
+  let out = '', count = 0;
+  for (let k = s.length - 1; k >= 0; k--) {
+    const ch = s[k];
+    if (/\d/.test(ch)) {
+      if (count === decIndex) out = '<span class="deciding ' + dir + '">' + ch + '</span>' + out;
+      else if (count === decIndex + 1) out = '<span class="place">' + ch + '</span>' + out;
+      else out = ch + out;
+      count++;
+    } else out = ch + out;
+  }
+  return out;
+}
+
+function renderExplore() {
+  const { n, unit, lo } = ex;
+  document.querySelectorAll('[data-action="unit"]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.unit) === unit)));
+  $('ex-number').innerHTML = numberWithDigitsHTML(n, unit);
+  const d = decidingDigit(n, unit);
+  $('ex-key').innerHTML = 'Underlined: the ' + UNIT_PLURAL[unit] + ' digit. Coloured: the deciding ' +
+    DECIDING_PLACE[unit] + ' digit (' + d + ').';
+  const svg = $('ex-line');
+  svg.setAttribute('viewBox', '0 0 1000 ' + lineLayout().H);
+  svg.innerHTML = numberLineInner({ n, unit, lo });
+  svg.setAttribute('aria-valuemin', lo);
+  svg.setAttribute('aria-valuemax', lo + unit);
+  svg.setAttribute('aria-valuenow', n);
+  svg.setAttribute('aria-valuetext', fmt(n) + ' rounds to ' + fmt(roundTo(n, unit)));
+  $('ex-frame').innerHTML = sentenceFrame(n, unit);
+  $('ex-halfway').hidden = !isHalfway(n, unit);
+  $('ex-minus').disabled = n <= 0;
+  $('ex-plus').disabled = n >= EX_MAX;
+  $('hill').innerHTML = hillSVG(d);
+  $('hill-text').innerHTML = 'When rounding to the nearest ' + fmt(unit) + ', look at the <strong>' + DECIDING_PLACE[unit] +
+    ' digit</strong>. Here it is <strong class="' + (d >= 5 ? 'c-up' : 'c-down') + '">' + d + '</strong>, so ' +
+    fmt(n) + ' rounds <strong class="' + (d >= 5 ? 'c-up' : 'c-down') + '">' + (d >= 5 ? 'up' : 'down') + '</strong> to ' + fmt(roundTo(n, unit)) + '.';
+}
+
+(function wireExploreDrag() {
+  const svg = $('ex-line');
+  let dragging = false;
+  const valueAt = (clientX) => {
+    const r = svg.getBoundingClientRect();
+    const vx = ((clientX - r.left) / r.width) * 1000;
+    const step = ex.unit / 10;
+    const { X0, W } = lineLayout();
+    const v = ex.lo + ((vx - X0) / W) * ex.unit;
+    return Math.max(ex.lo, Math.min(ex.lo + ex.unit, Math.round(v / step) * step));
+  };
+  svg.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    svg.setPointerCapture(e.pointerId);
+    exSet(valueAt(e.clientX), true);
+  });
+  svg.addEventListener('pointermove', (e) => { if (dragging) exSet(valueAt(e.clientX), true); });
+  const stop = () => { dragging = false; };
+  svg.addEventListener('pointerup', stop);
+  svg.addEventListener('pointercancel', stop);
+  svg.addEventListener('keydown', (e) => {
+    const step = ex.unit / 10;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); exSet(ex.n + step, true); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); exSet(ex.n - step, true); }
+  });
+})();
+
+$('ex-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = parseAnswer($('ex-input').value);
+  if (Number.isFinite(v)) exSet(Math.min(v, 9999));
+  $('ex-input').select();
+});
+
+/* ---------- Practise ---------- */
+let run = null;
+
+function startLevel(no) {
+  run = { level: no, qs: makeLevel(no), i: 0, score: 0, results: [] };
+  startQuestion();
+  go('practise');
+  renderQuestion();
+}
+
+function startQuestion() {
+  const q = run.qs[run.i];
+  run.tries = 0;        // any slip on this question means it wasn't right first time
+  run.stepMisses = 0;   // slips on the current step; two in a row shows the worked answer
+  run.phase = q.guided ? 'pair' : 'answer';
+  run.hint = false;
+  run.pairOrder = null;
+  run.wrongPairs = null;
+  run.feedback = { cls: '', html: '' };
+  run.draft = '';
+}
+
+const PRAISE = ['Brilliant!', 'Spot on!', 'Super rounding!', 'Yes, that\'s it!', 'Great thinking!', 'Nailed it!'];
+
+function mistakeMessage(kind, q, answer) {
+  const { n, unit } = q;
+  const [lo, hi] = neighbours(n, unit);
+  if (kind === 'halfwayDown') {
+    return show(n, q) + ' is exactly halfway between ' + show(lo, q) + ' and ' + show(hi, q) +
+      '. Remember the halfway rule: halfway numbers round <strong>up</strong>.';
+  }
+  if (kind === 'wrongWay') {
+    return show(n, q) + ' is between ' + show(lo, q) + ' and ' + show(hi, q) +
+      ', but which one is it <strong>closer</strong> to? Look at which side of the halfway line the dot is on.';
+  }
+  if (kind.startsWith('wrongPlace:')) {
+    const u = Number(kind.split(':')[1]);
+    return 'That\'s ' + show(n, q) + ' rounded to the nearest <strong>' + fmt(u) + '</strong>. This question wants the nearest <strong>' + unitName(q) + '</strong>.';
+  }
+  if (kind === 'notMultiple') {
+    if (unit === 10) return 'A number rounded to the nearest 10 always ends in <strong>0</strong>. Change the ones digit to 0, and check the tens digit.';
+    if (unit === 100) return 'A number rounded to the nearest 100 always ends in <strong>00</strong>. Change the tens and ones digits to 0, and check the hundreds digit.';
+    return 'A number rounded to the nearest 1,000 always ends in <strong>000</strong>. Change the hundreds, tens and ones digits to 0, and check the thousands digit.';
+  }
+  return show(answer, q) + ' is too far away. ' + show(n, q) + ' sits between ' + show(lo, q) + ' and ' + show(hi, q) +
+    ', so the answer must be one of those two.';
+}
+
+function renderQuestion() {
+  const q = run.qs[run.i];
+  const lvl = LEVELS[run.level - 1];
+  $('q-level').textContent = 'Level ' + lvl.no + ': ' + lvl.title;
+  $('q-dots').innerHTML = run.qs.map((_, k) =>
+    '<li class="' + (k === run.i && run.phase !== 'done' ? 'current' : run.results[k] || '') + '"></li>').join('');
+  $('q-count').textContent = 'Question ' + (run.i + 1) + ' of ' + run.qs.length + (q.tag ? ' · ' + q.tag : '');
+  $('q-prompt').textContent = promptFor(q);
+
+  const [lo, hi] = neighbours(q.n, q.unit);
+  let body = '';
+  if (q.note) body += '<p class="q-sub">' + q.note + '</p>';
+
+  if (run.phase === 'pair') {
+    const opts = [[lo, hi], lo - q.unit >= 0 ? [lo - q.unit, lo] : [hi + q.unit, hi + 2 * q.unit], [hi, hi + q.unit]];
+    body += '<p class="q-sub"><strong>Step 1.</strong> Which two ' + UNIT_PLURAL[q.unit] + ' is ' + fmt(q.n) + ' between?</p>';
+    body += '<div class="choices">' + (run.pairOrder || (run.pairOrder = shuffle(opts))).map(p =>
+      '<button class="btn btn-ghost" data-action="pair" data-lo="' + p[0] + '"' +
+      (run.wrongPairs && run.wrongPairs.includes(p[0]) ? ' disabled' : '') + '>' +
+      fmt(p[0]) + ' and ' + fmt(p[1]) + '</button>').join('') + '</div>';
+  } else if (run.phase === 'closer') {
+    body += '<p class="q-sub"><strong>Step 2.</strong> Here is ' + fmt(q.n) + ' on the number line. Is it closer to ' + fmt(lo) + ' or ' + fmt(hi) + '?</p>';
+    body += '<div class="nl-wrap">' + numberLineSVG({ n: q.n, unit: q.unit, arrow: false }) + '</div>';
+    body += '<div class="choices">' +
+      '<button class="btn btn-down btn-big" data-action="closer" data-v="' + lo + '">' + fmt(lo) + '</button>' +
+      '<button class="btn btn-up btn-big" data-action="closer" data-v="' + hi + '">' + fmt(hi) + '</button></div>';
+  } else if (run.phase === 'answer') {
+    body += '<form class="answer-form" id="answer-form">' +
+      '<label for="answer">Your answer</label>' +
+      '<div class="answer-row">' +
+      (q.prefix ? '<span class="affix">' + q.prefix + '</span>' : '') +
+      '<input class="input" id="answer" inputmode="numeric" autocomplete="off" enterkeyhint="done">' +
+      (q.suffix ? '<span class="affix">' + q.suffix + '</span>' : '') +
+      '<button class="btn btn-primary" type="submit">Check</button></div></form>';
+    body += run.hint
+      ? '<div class="nl-wrap">' + numberLineSVG({ n: q.n, unit: q.unit, arrow: false }) + '</div>'
+      : '<div><button class="btn btn-ghost" data-action="hint">Show me the number line</button></div>';
+  }
+  $('q-body').innerHTML = body;
+
+  const fb = $('q-feedback');
+  fb.className = 'feedback ' + run.feedback.cls;
+  fb.innerHTML = typeof run.feedback.html === 'function' ? run.feedback.html() : run.feedback.html;
+
+  const actions = $('q-actions');
+  actions.innerHTML = run.phase === 'done'
+    ? '<button class="btn btn-primary" data-action="next" id="next-btn">' + (run.i + 1 < run.qs.length ? 'Next question →' : 'Finish level →') + '</button>'
+    : '';
+
+  if (run.phase === 'answer') {
+    const input = $('answer');
+    input.value = run.draft;
+    input.addEventListener('input', () => { run.draft = input.value; });
+    $('answer-form').addEventListener('submit', (e) => { e.preventDefault(); checkTyped(input.value); });
+    input.focus({ preventScroll: true });
+    if (run.draft) input.select();
+  } else if (run.phase === 'done') {
+    $('next-btn').focus({ preventScroll: true });
+  }
+}
+
+function setFeedback(cls, html) { run.feedback = { cls, html }; }
+
+function solvedFeedback(q, headline) {
+  const c = roundTo(q.n, q.unit);
+  return '<p class="headline">' + headline + '</p>' +
+    '<p>' + sentenceFrame(q.n, q.unit, q) + '</p>' +
+    (q.after ? '<p><strong>' + q.after(c) + '</strong></p>' : '') +
+    '<div class="nl-wrap">' + numberLineSVG({ n: q.n, unit: q.unit, arrow: true }) + '</div>';
+}
+
+function succeed() {
+  const q = run.qs[run.i];
+  const first = run.tries === 0;
+  if (first) run.score++;
+  run.results[run.i] = first ? 'good' : 'help';
+  run.phase = 'done';
+  const praise = PRAISE[Math.floor(Math.random() * PRAISE.length)];
+  setFeedback('good', () => solvedFeedback(q, praise));
+  renderQuestion();
+  confetti();
+}
+
+function reveal() {
+  const q = run.qs[run.i];
+  run.results[run.i] = 'help';
+  run.phase = 'done';
+  setFeedback('hint', () => solvedFeedback(q, 'Let\'s work it out together.'));
+  renderQuestion();
+}
+
+function wrong(kind, answer) {
+  const q = run.qs[run.i];
+  run.tries++;
+  run.stepMisses++;
+  if (run.stepMisses >= 2) return reveal();
+  setFeedback('hint', '<p class="headline">Nearly! Have another go.</p><p>' + mistakeMessage(kind, q, answer) + '</p>');
+  if (run.phase === 'answer') run.hint = true;
+  renderQuestion();
+}
+
+function choosePair(loPicked) {
+  const q = run.qs[run.i];
+  const [lo, hi] = neighbours(q.n, q.unit);
+  if (loPicked === lo) {
+    run.phase = 'closer';
+    run.stepMisses = 0;
+    setFeedback('', '');
+    renderQuestion();
+    return;
+  }
+  run.tries++;
+  run.wrongPairs = (run.wrongPairs || []).concat(loPicked);
+  setFeedback('hint', '<p class="headline">Not quite.</p><p>' + fmt(q.n) + ' comes after <strong>' + fmt(lo) +
+    '</strong> and before <strong>' + fmt(hi) + '</strong>. Tap that pair.</p>');
+  renderQuestion();
+}
+
+function chooseCloser(v) {
+  const q = run.qs[run.i];
+  const kind = diagnose(q.n, q.unit, v);
+  if (kind === 'correct') return succeed();
+  wrong(kind, v);
+}
+
+function checkTyped(text) {
+  const q = run.qs[run.i];
+  const v = parseAnswer(text);
+  if (!Number.isFinite(v)) {
+    setFeedback('hint', '<p>Type your answer using digits, like ' + show(q.unit * 5, q) + '.</p>');
+    renderQuestion();
+    return;
+  }
+  const kind = diagnose(q.n, q.unit, v);
+  if (kind === 'correct') return succeed();
+  wrong(kind, v);
+}
+
+function nextQuestion() {
+  run.i++;
+  if (run.i >= run.qs.length) return finishLevel();
+  startQuestion();
+  renderQuestion();
+  window.scrollTo(0, 0);
+}
+
+function finishLevel() {
+  const k = starsFor(run.score);
+  const best = Math.max(k, progress.stars[run.level] || 0);
+  progress.stars[run.level] = best;
+  saveProgress();
+  const lvl = LEVELS[run.level - 1];
+  const msg = k === 3 ? 'Amazing rounding!' : k === 2 ? 'Great work!' : 'Well done for finishing!';
+  const tip = k === 3 ? 'You\'re ready for the next level.'
+    : 'Play again to win more stars. The number line in Explore can help.';
+  $('done-card').innerHTML =
+    '<p class="eyebrow">Level ' + lvl.no + ' complete</p>' +
+    '<h2 id="done-title">' + msg + '</h2>' +
+    starsHTML(k) +
+    '<p>You got <strong>' + run.score + ' out of ' + run.qs.length + '</strong> right first time.</p>' +
+    '<p>' + tip + '</p>' +
+    '<div class="row" style="justify-content:center">' +
+    '<button class="btn btn-ghost" data-action="start" data-level="' + lvl.no + '">Play again</button>' +
+    (lvl.no < LEVELS.length ? '<button class="btn btn-primary" data-action="start" data-level="' + (lvl.no + 1) + '">Level ' + (lvl.no + 1) + ' →</button>' : '') +
+    '<button class="btn btn-ghost" data-action="go" data-screen="home">All levels</button></div>';
+  go('done');
+  if (k === 3) confetti();
+}
+
+/* ---------- One click handler for every data-action ---------- */
+let resetArmed = false;
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-action]');
+  if (!b || b.disabled) return;
+  const a = b.dataset.action;
+  if (a === 'go') go(b.dataset.screen);
+  else if (a === 'start') startLevel(Number(b.dataset.level));
+  else if (a === 'unit') { ex.unit = Number(b.dataset.unit); exSet(Math.min(ex.n, 9999)); }
+  else if (a === 'ex-step') exSet(ex.n + Number(b.dataset.dir) * (ex.unit / 10), true);
+  else if (a === 'ex-random') {
+    const n = ex.unit === 10 ? randInt(1, 999) : ex.unit === 100 ? randInt(1, 9999) : randInt(1000, 9999);
+    exSet(n);
+  }
+  else if (a === 'speak') speak($(b.dataset.target).textContent);
+  else if (a === 'speak-q') {
+    const subs = [...$('q-body').querySelectorAll('.q-sub')].map(p => p.textContent.replace(/^Step \d\. /, ''));
+    speak([promptFor(run.qs[run.i]), ...subs].join(' '));
+  }
+  else if (a === 'pair') choosePair(Number(b.dataset.lo));
+  else if (a === 'closer') chooseCloser(Number(b.dataset.v));
+  else if (a === 'hint') { run.hint = true; renderQuestion(); }
+  else if (a === 'next') nextQuestion();
+  else if (a === 'reset') {
+    if (!resetArmed) {
+      resetArmed = true;
+      b.textContent = 'Tap again to reset all stars';
+      $('reset-msg').textContent = '';
+      setTimeout(() => { resetArmed = false; b.textContent = 'Reset progress'; }, 4000);
+    } else {
+      resetArmed = false;
+      progress = { stars: {} };
+      saveProgress();
+      b.textContent = 'Reset progress';
+      $('reset-msg').textContent = 'Progress reset.';
+      renderHome();
+    }
+  }
+});
+
+narrowQuery.addEventListener('change', () => {
+  if (!$('screen-home').hidden) renderHome();
+  if (!$('screen-explore').hidden) renderExplore();
+  if (!$('screen-practise').hidden && run) renderQuestion();
+});
+
+renderHome();
+</script>
+</body>
+</html>
