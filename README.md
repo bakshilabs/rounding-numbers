@@ -13,6 +13,7 @@ Double-click `index.html`. It opens in your browser and runs from this folder. T
   3. Nearest 100
   4. Nearest 1,000
   5. Mixed, with £, g, ml and m
+- **4-digit**: round 4-digit numbers to the nearest 100, as many as you like. Each number is shown in a Th/H/T/O place-value chart with the hundreds column highlighted. **Show/Hide number line** turns the number line on for support or off for a challenge, and the browser remembers the choice. The numbers include halfway ones (4,650), ones that cross a thousand (3,962 → 4,000, 9,950 → 10,000), and ones with 0 hundreds (5,032 → 5,000).
 
 Stars are saved in this browser only. Grown-ups can clear them under **For grown-ups → Reset progress**.
 
@@ -51,4 +52,4 @@ Sources:
 node test-logic.mjs
 ```
 
-This tests the rounding function on every number from 0 to 10,000, the mistake detection, and the question generator.
+This tests the rounding function on every number from 0 to 10,000, the mistake detection, the question generator, and the 4-digit number generator.

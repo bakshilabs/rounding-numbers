@@ -299,6 +299,19 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
 .done .stars { font-size: 64px; letter-spacing: 6px; }
 .done h2 { font-size: 36px; }
 
+/* 4-digit focus */
+.level-focus { min-height: 0; border-color: var(--tape-deep); }
+.pv { display: flex; justify-content: center; gap: 8px; }
+.pv-col {
+  display: grid; justify-items: center; gap: 2px; min-width: 4.4rem;
+  padding: 8px 6px 12px; border: 2px solid var(--line); border-radius: 14px;
+}
+.pv-col.focus { border-color: var(--tape-deep); background: var(--hint-soft); }
+.pv-head { font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--muted); }
+.pv-digit { font-family: var(--font-display); font-weight: 700; font-size: clamp(48px, 13vw, 76px); line-height: 1; }
+.pv-digit.down { color: var(--down); }
+.pv-digit.up { color: var(--up); }
+
 #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; width: 100%; height: 100%; }
 
 @media (max-width: 480px) {
@@ -334,6 +347,7 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
     <nav class="nav" aria-label="Main">
       <button data-action="go" data-screen="home" aria-current="page">Levels</button>
       <button data-action="go" data-screen="explore">Explore</button>
+      <button data-action="go" data-screen="hundreds">4-digit</button>
     </nav>
   </div>
 </header>
@@ -374,6 +388,11 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
         <span class="total" id="total-stars"></span>
       </div>
       <div class="levels" id="levels"></div>
+      <button class="level level-focus" data-action="go" data-screen="hundreds">
+        <span class="level-no">Focus</span>
+        <span class="level-title">4-digit numbers to the nearest 100</span>
+        <span class="level-blurb">As many as you like, with or without the number line.</span>
+      </button>
     </div>
 
     <details class="card grown-ups">
@@ -385,6 +404,7 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
           <li><strong>Meaning before the rule.</strong> Children first find the two multiples either side, the halfway point, and which end is closer. The digit shortcut (0–4 round down, 5–9 round up) comes afterwards, on the Explore screen.</li>
           <li><strong>Same order as White Rose and Oak National:</strong> nearest 10, then 100, then 1,000. After that, one number three ways (6,347 → 6,350, 6,300, 6,000) and real measures (2,800 g is about 3 kg).</li>
           <li><strong>Support that fades.</strong> The first three questions in Levels 1–4 are split into two tap-to-answer steps. Later questions are typed, and the number line is available under "Show me the number line".</li>
+          <li><strong>4-digit focus.</strong> A separate section for rounding 4-digit numbers to the nearest 100, with a place-value chart and as many questions as you like. The number line can be shown for support or hidden for a challenge; the choice is remembered.</li>
           <li><strong>No timers and nothing taken away.</strong> Stars count answers right first time: 9–10 gets 3 stars, 7–8 gets 2, and finishing always gets 1.</li>
         </ul>
         <h3>Common mistakes it looks out for</h3>
@@ -458,6 +478,29 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
       <p id="hill-text"></p>
       <div id="hill"></div>
       <p style="font-size:16px;color:var(--muted)">Only use the shortcut once you know <em>why</em> it works. The number line shows the reason.</p>
+    </div>
+  </section>
+
+  <!-- 4-DIGIT: NEAREST 100 -->
+  <section class="screen" id="screen-hundreds" aria-labelledby="hs-title" hidden>
+    <div class="hero">
+      <h1 id="hs-title" style="font-size:clamp(32px,7vw,44px)">4-digit numbers</h1>
+      <p class="lede">Round each number to the nearest 100. Use the number line, or hide it for a challenge.</p>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn btn-ghost" id="hs-line-btn" data-action="hs-line"></button>
+      <span class="total" id="hs-tally" aria-live="polite"></span>
+    </div>
+    <div class="card">
+      <div class="q-prompt-row">
+        <h2 class="q-prompt" id="hs-prompt"></h2>
+        <button class="speak" data-action="speak" data-target="hs-prompt" hidden>🔊 Read to me</button>
+      </div>
+      <div class="pv" id="hs-pv" role="img"></div>
+      <div class="nl-wrap" id="hs-line"></div>
+      <div id="hs-answer"></div>
+      <div class="feedback" id="hs-feedback" aria-live="polite"></div>
+      <div class="row" id="hs-actions"></div>
     </div>
   </section>
 
@@ -621,6 +664,22 @@ function makeMixedLevel(fresh) {
     text: 'It is ' + fmt(metres) + ' m from home to the park. Round the distance to the nearest 100 m.',
   };
   return [...threeWays(a), moneyQ, gramsQ, ...threeWays(b), mlQ, metresQ];
+}
+
+// 4-digit focus: a number from 1,001 to 9,999 that isn't a multiple of 100. Mixes in
+// halfway numbers (4,650), numbers that cross a thousand (3,962 → 4,000, 9,950 → 10,000)
+// and numbers with 0 hundreds (5,032 → 5,000).
+function makeHundredsNumber(avoid = []) {
+  const r = Math.random();
+  const gen = r < 0.15 ? () => randInt(10, 99) * 100 + 50
+    : r < 0.27 ? () => randInt(1, 9) * 1000 + randInt(951, 999)
+    : r < 0.37 ? () => randInt(1, 9) * 1000 + randInt(1, 49)
+    : () => randInt(1001, 9999);
+  for (let k = 0; k < 500; k++) {
+    const v = gen();
+    if (v % 100 !== 0 && !avoid.includes(v)) return v;
+  }
+  throw new Error('Could not make a fresh number');
 }
 
 function starsFor(score) { return score >= 9 ? 3 : score >= 7 ? 2 : 1; }
@@ -807,16 +866,17 @@ function starsHTML(k, total = 3) {
 }
 
 /* ---------- Screens ---------- */
-const SCREENS = ['home', 'explore', 'practise', 'done'];
+const SCREENS = ['home', 'explore', 'hundreds', 'practise', 'done'];
 function go(name) {
   SCREENS.forEach(s => { $('screen-' + s).hidden = s !== name; });
   document.querySelectorAll('.nav button').forEach(b => {
-    const active = b.dataset.screen === name || (name !== 'explore' && b.dataset.screen === 'home');
+    const active = b.dataset.screen === name || ((name === 'practise' || name === 'done') && b.dataset.screen === 'home');
     if (active) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
   if (canSpeak) window.speechSynthesis.cancel();
   if (name === 'home') renderHome();
   if (name === 'explore') renderExplore();
+  if (name === 'hundreds') renderHundreds();
   window.scrollTo(0, 0);
 }
 
@@ -926,6 +986,92 @@ $('ex-form').addEventListener('submit', (e) => {
   if (Number.isFinite(v)) exSet(Math.min(v, 9999));
   $('ex-input').select();
 });
+
+/* ---------- 4-digit numbers: nearest 100 ---------- */
+const HS_LINE_KEY = 'round-it-hundreds-line-v1';
+const hs = { q: null, phase: 'answer', tries: 0, draft: '', feedback: { cls: '', html: '' }, done: 0, firstTime: 0, recent: [], line: true };
+try { hs.line = localStorage.getItem(HS_LINE_KEY) !== 'off'; } catch (e) { /* storage blocked */ }
+
+function hsNext() {
+  const n = makeHundredsNumber(hs.recent);
+  hs.recent = hs.recent.concat(n).slice(-20);
+  hs.q = { n, unit: 100 };
+  hs.phase = 'answer';
+  hs.tries = 0;
+  hs.draft = '';
+  hs.feedback = { cls: '', html: '' };
+}
+
+// Th H T O columns. The hundreds column is highlighted; once solved, the tens digit shows up or down.
+function placeValueHTML(n, solved) {
+  const dir = decidingDigit(n, 100) >= 5 ? 'up' : 'down';
+  return String(n).split('').map((d, i) =>
+    '<div class="pv-col' + (i === 1 ? ' focus' : '') + '"><span class="pv-head">' + ['Th', 'H', 'T', 'O'][i] + '</span>' +
+    '<span class="pv-digit' + (solved && i === 2 ? ' ' + dir : '') + '">' + d + '</span></div>').join('');
+}
+
+function renderHundreds(focus = true) {
+  if (!hs.q) hsNext();
+  const { q } = hs, solved = hs.phase === 'done';
+  const digits = String(q.n).split('').map(Number);
+  $('hs-line-btn').textContent = hs.line ? 'Hide number line' : 'Show number line';
+  $('hs-tally').textContent = hs.done ? hs.firstTime + ' of ' + hs.done + ' right first time' : '';
+  $('hs-prompt').textContent = promptFor(q);
+  $('hs-pv').innerHTML = placeValueHTML(q.n, solved);
+  $('hs-pv').setAttribute('aria-label', digits[0] + ' thousands, ' + digits[1] + ' hundreds, ' + digits[2] + ' tens, ' + digits[3] + ' ones');
+  $('hs-line').hidden = !hs.line;
+  $('hs-line').innerHTML = hs.line ? numberLineSVG({ n: q.n, unit: q.unit, arrow: solved }) : '';
+  $('hs-answer').innerHTML = solved ? '' :
+    '<form class="answer-form" id="hs-form"><label for="hs-input">Your answer</label><div class="answer-row">' +
+    '<input class="input" id="hs-input" inputmode="numeric" autocomplete="off" enterkeyhint="done">' +
+    '<button class="btn btn-primary" type="submit">Check</button></div></form>';
+  const fb = $('hs-feedback');
+  fb.className = 'feedback ' + hs.feedback.cls;
+  fb.innerHTML = hs.feedback.html;
+  $('hs-actions').innerHTML = solved ? '<button class="btn btn-primary" data-action="hs-next" id="hs-next-btn">Next number →</button>' : '';
+
+  if (!solved) {
+    const input = $('hs-input');
+    input.value = hs.draft;
+    input.addEventListener('input', () => { hs.draft = input.value; });
+    $('hs-form').addEventListener('submit', (e) => { e.preventDefault(); hsCheck(input.value); });
+    if (focus) { input.focus({ preventScroll: true }); if (hs.draft) input.select(); }
+  } else if (focus) {
+    $('hs-next-btn').focus({ preventScroll: true });
+  }
+}
+
+function hsSolve(cls, headline) {
+  const { q } = hs;
+  hs.phase = 'done';
+  hs.done++;
+  if (hs.tries === 0) hs.firstTime++;
+  hs.feedback = { cls, html: '<p class="headline">' + headline + '</p><p>' + sentenceFrame(q.n, q.unit, q) + '</p>' };
+  renderHundreds();
+}
+
+function hsCheck(text) {
+  const { q } = hs;
+  const v = parseAnswer(text);
+  if (!Number.isFinite(v)) {
+    hs.feedback = { cls: 'hint', html: '<p>Type your answer using digits, like 5,200.</p>' };
+    return renderHundreds();
+  }
+  const kind = diagnose(q.n, q.unit, v);
+  if (kind === 'correct') {
+    hsSolve('good', PRAISE[Math.floor(Math.random() * PRAISE.length)]);
+    return confetti();
+  }
+  hs.tries++;
+  if (hs.tries >= 2) return hsSolve('hint', 'Let\'s work it out together.');
+  const [lo, hi] = neighbours(q.n, q.unit);
+  // The usual hint points at the dot on the number line, which isn't there when it's hidden
+  const msg = kind === 'wrongWay' && !hs.line
+    ? fmt(q.n) + ' is between ' + fmt(lo) + ' and ' + fmt(hi) + ', but which one is it <strong>closer</strong> to? Halfway between them is ' + fmt(lo + 50) + '.'
+    : mistakeMessage(kind, q, v);
+  hs.feedback = { cls: 'hint', html: '<p class="headline">Nearly! Have another go.</p><p>' + msg + '</p>' };
+  renderHundreds();
+}
 
 /* ---------- Practise ---------- */
 let run = null;
@@ -1167,6 +1313,12 @@ document.addEventListener('click', (e) => {
   else if (a === 'closer') chooseCloser(Number(b.dataset.v));
   else if (a === 'hint') { run.hint = true; renderQuestion(); }
   else if (a === 'next') nextQuestion();
+  else if (a === 'hs-next') { hsNext(); renderHundreds(); }
+  else if (a === 'hs-line') {
+    hs.line = !hs.line;
+    try { localStorage.setItem(HS_LINE_KEY, hs.line ? 'on' : 'off'); } catch (e) { /* storage blocked */ }
+    renderHundreds(false);
+  }
   else if (a === 'reset') {
     if (!resetArmed) {
       resetArmed = true;
@@ -1187,6 +1339,7 @@ document.addEventListener('click', (e) => {
 narrowQuery.addEventListener('change', () => {
   if (!$('screen-home').hidden) renderHome();
   if (!$('screen-explore').hidden) renderExplore();
+  if (!$('screen-hundreds').hidden) renderHundreds(false);
   if (!$('screen-practise').hidden && run) renderQuestion();
 });
 
