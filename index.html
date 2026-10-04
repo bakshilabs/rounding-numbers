@@ -391,7 +391,8 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
       <button class="level level-focus" data-action="go" data-screen="hundreds">
         <span class="level-no">Focus</span>
         <span class="level-title">4-digit numbers to the nearest 100</span>
-        <span class="level-blurb">As many as you like, with or without the number line.</span>
+        <span class="level-blurb">Rounds of 10, with or without the number line.</span>
+        <span id="hs-stars"></span>
       </button>
     </div>
 
@@ -404,7 +405,7 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
           <li><strong>Meaning before the rule.</strong> Children first find the two multiples either side, the halfway point, and which end is closer. The digit shortcut (0–4 round down, 5–9 round up) comes afterwards, on the Explore screen.</li>
           <li><strong>Same order as White Rose and Oak National:</strong> nearest 10, then 100, then 1,000. After that, one number three ways (6,347 → 6,350, 6,300, 6,000) and real measures (2,800 g is about 3 kg).</li>
           <li><strong>Support that fades.</strong> The first three questions in Levels 1–4 are split into two tap-to-answer steps. Later questions are typed, and the number line is available under "Show me the number line".</li>
-          <li><strong>4-digit focus.</strong> A separate section for rounding 4-digit numbers to the nearest 100, with a place-value chart and as many questions as you like. The number line can be shown for support or hidden for a challenge; the choice is remembered.</li>
+          <li><strong>4-digit focus.</strong> A separate section for rounding 4-digit numbers to the nearest 100, with a place-value chart, in rounds of 10 with stars like the levels. The number line can be shown for support or hidden for a challenge; the choice is remembered.</li>
           <li><strong>No timers and nothing taken away.</strong> Stars count answers right first time: 9–10 gets 3 stars, 7–8 gets 2, and finishing always gets 1.</li>
         </ul>
         <h3>Common mistakes it looks out for</h3>
@@ -487,11 +488,13 @@ details.grown-ups ul { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
       <h1 id="hs-title" style="font-size:clamp(32px,7vw,44px)">4-digit numbers</h1>
       <p class="lede">Round each number to the nearest 100. Use the number line, or hide it for a challenge.</p>
     </div>
-    <div class="row" style="justify-content:space-between">
+    <div class="q-top">
       <button class="btn btn-ghost" id="hs-line-btn" data-action="hs-line"></button>
-      <span class="total" id="hs-tally" aria-live="polite"></span>
+      <ol class="dots" id="hs-dots" aria-hidden="true"></ol>
     </div>
-    <div class="card">
+    <div class="card done" id="hs-done" hidden></div>
+    <div class="card" id="hs-card">
+      <p class="q-count" id="hs-count"></p>
       <div class="q-prompt-row">
         <h2 class="q-prompt" id="hs-prompt"></h2>
         <button class="speak" data-action="speak" data-target="hs-prompt" hidden>🔊 Read to me</button>
@@ -666,20 +669,31 @@ function makeMixedLevel(fresh) {
   return [...threeWays(a), moneyQ, gramsQ, ...threeWays(b), mlQ, metresQ];
 }
 
-// 4-digit focus: a number from 1,001 to 9,999 that isn't a multiple of 100. Mixes in
-// halfway numbers (4,650), numbers that cross a thousand (3,962 → 4,000, 9,950 → 10,000)
-// and numbers with 0 hundreds (5,032 → 5,000).
-function makeHundredsNumber(avoid = []) {
+// 4-digit focus: a number from 1,001 to 9,999 that isn't a multiple of 100. Pass a kind to
+// get a halfway number (4,650), one that crosses a thousand (3,962 → 4,000, 9,950 → 10,000)
+// or one with 0 hundreds (5,032 → 5,000). With no kind, these are mixed in at random.
+const HUNDREDS_KINDS = {
+  halfway: () => randInt(10, 99) * 100 + 50,
+  crossesThousand: () => randInt(1, 9) * 1000 + randInt(951, 999),
+  zeroHundreds: () => randInt(1, 9) * 1000 + randInt(1, 49),
+  any: () => randInt(1001, 9999),
+};
+function makeHundredsNumber(avoid = [], kind) {
   const r = Math.random();
-  const gen = r < 0.15 ? () => randInt(10, 99) * 100 + 50
-    : r < 0.27 ? () => randInt(1, 9) * 1000 + randInt(951, 999)
-    : r < 0.37 ? () => randInt(1, 9) * 1000 + randInt(1, 49)
-    : () => randInt(1001, 9999);
+  const gen = HUNDREDS_KINDS[kind || (r < 0.15 ? 'halfway' : r < 0.27 ? 'crossesThousand' : r < 0.37 ? 'zeroHundreds' : 'any')];
   for (let k = 0; k < 500; k++) {
     const v = gen();
     if (v % 100 !== 0 && !avoid.includes(v)) return v;
   }
   throw new Error('Could not make a fresh number');
+}
+
+// A round of 10 different numbers, with at least one halfway, one thousand-crossing
+// and one 0-hundreds number somewhere in it.
+function makeHundredsRound(avoid = []) {
+  const kinds = shuffle(['halfway', 'crossesThousand', 'zeroHundreds', ...Array(QUESTIONS_PER_LEVEL - 3).fill(undefined)]);
+  const used = avoid.slice();
+  return kinds.map(kind => { const n = makeHundredsNumber(used, kind); used.push(n); return n; });
 }
 
 function starsFor(score) { return score >= 9 ? 3 : score >= 7 ? 2 : 1; }
@@ -876,7 +890,7 @@ function go(name) {
   if (canSpeak) window.speechSynthesis.cancel();
   if (name === 'home') renderHome();
   if (name === 'explore') renderExplore();
-  if (name === 'hundreds') renderHundreds();
+  if (name === 'hundreds') { if (hs.finished) hsStartRound(); renderHundreds(); }
   window.scrollTo(0, 0);
 }
 
@@ -894,7 +908,10 @@ function renderHome() {
       '<span class="level-blurb">' + l.blurb + '</span>' +
       starsHTML(k) + '</button>';
   }).join('');
-  $('total-stars').textContent = total + ' of ' + LEVELS.length * 3 + ' stars';
+  const hsStars = progress.stars.hundreds || 0;
+  $('hs-stars').innerHTML = starsHTML(hsStars);
+  total += hsStars;
+  $('total-stars').textContent = total + ' of ' + (LEVELS.length + 1) * 3 + ' stars';
 }
 
 /* ---------- Explore ---------- */
@@ -989,13 +1006,22 @@ $('ex-form').addEventListener('submit', (e) => {
 
 /* ---------- 4-digit numbers: nearest 100 ---------- */
 const HS_LINE_KEY = 'round-it-hundreds-line-v1';
-const hs = { q: null, phase: 'answer', tries: 0, draft: '', feedback: { cls: '', html: '' }, done: 0, firstTime: 0, recent: [], line: true };
+const hs = { round: null, i: 0, score: 0, results: [], finished: false, q: null, phase: 'answer', tries: 0, draft: '', feedback: { cls: '', html: '' }, recent: [], line: true };
 try { hs.line = localStorage.getItem(HS_LINE_KEY) !== 'off'; } catch (e) { /* storage blocked */ }
 
-function hsNext() {
-  const n = makeHundredsNumber(hs.recent);
-  hs.recent = hs.recent.concat(n).slice(-20);
-  hs.q = { n, unit: 100 };
+// Numbers from the last two rounds aren't reused
+function hsStartRound() {
+  hs.round = makeHundredsRound(hs.recent);
+  hs.recent = hs.recent.concat(hs.round).slice(-20);
+  hs.i = 0;
+  hs.score = 0;
+  hs.results = [];
+  hs.finished = false;
+  hsStartQuestion();
+}
+
+function hsStartQuestion() {
+  hs.q = { n: hs.round[hs.i], unit: 100 };
   hs.phase = 'answer';
   hs.tries = 0;
   hs.draft = '';
@@ -1011,11 +1037,21 @@ function placeValueHTML(n, solved) {
 }
 
 function renderHundreds(focus = true) {
-  if (!hs.q) hsNext();
+  if (!hs.round) hsStartRound();
   const { q } = hs, solved = hs.phase === 'done';
   const digits = String(q.n).split('').map(Number);
   $('hs-line-btn').textContent = hs.line ? 'Hide number line' : 'Show number line';
-  $('hs-tally').textContent = hs.done ? hs.firstTime + ' of ' + hs.done + ' right first time' : '';
+  $('hs-dots').innerHTML = hs.round.map((_, k) =>
+    '<li class="' + (k === hs.i && !solved ? 'current' : hs.results[k] || '') + '"></li>').join('');
+  $('hs-done').hidden = !hs.finished;
+  $('hs-card').hidden = hs.finished;
+  if (hs.finished) {
+    $('hs-line-btn').hidden = true;
+    if (focus) $('hs-again-btn').focus({ preventScroll: true });
+    return;
+  }
+  $('hs-line-btn').hidden = false;
+  $('hs-count').textContent = 'Question ' + (hs.i + 1) + ' of ' + hs.round.length;
   $('hs-prompt').textContent = promptFor(q);
   $('hs-pv').innerHTML = placeValueHTML(q.n, solved);
   $('hs-pv').setAttribute('aria-label', digits[0] + ' thousands, ' + digits[1] + ' hundreds, ' + digits[2] + ' tens, ' + digits[3] + ' ones');
@@ -1028,7 +1064,8 @@ function renderHundreds(focus = true) {
   const fb = $('hs-feedback');
   fb.className = 'feedback ' + hs.feedback.cls;
   fb.innerHTML = hs.feedback.html;
-  $('hs-actions').innerHTML = solved ? '<button class="btn btn-primary" data-action="hs-next" id="hs-next-btn">Next number →</button>' : '';
+  $('hs-actions').innerHTML = solved ? '<button class="btn btn-primary" data-action="hs-next" id="hs-next-btn">' +
+    (hs.i + 1 < hs.round.length ? 'Next number →' : 'Finish round →') + '</button>' : '';
 
   if (!solved) {
     const input = $('hs-input');
@@ -1044,10 +1081,41 @@ function renderHundreds(focus = true) {
 function hsSolve(cls, headline) {
   const { q } = hs;
   hs.phase = 'done';
-  hs.done++;
-  if (hs.tries === 0) hs.firstTime++;
+  if (hs.tries === 0) hs.score++;
+  hs.results[hs.i] = hs.tries === 0 ? 'good' : 'help';
   hs.feedback = { cls, html: '<p class="headline">' + headline + '</p><p>' + sentenceFrame(q.n, q.unit, q) + '</p>' };
   renderHundreds();
+}
+
+function hsNextQuestion() {
+  hs.i++;
+  if (hs.i >= hs.round.length) return hsFinish();
+  hsStartQuestion();
+  renderHundreds();
+  window.scrollTo(0, 0);
+}
+
+function hsFinish() {
+  const k = starsFor(hs.score);
+  progress.stars.hundreds = Math.max(k, progress.stars.hundreds || 0);
+  saveProgress();
+  hs.finished = true;
+  const msg = k === 3 ? 'Amazing rounding!' : k === 2 ? 'Great work!' : 'Well done for finishing!';
+  const tip = k === 3 ? (hs.line ? 'Ready for a challenge? Try a round with the number line hidden.' : 'You can round 4-digit numbers to the nearest 100!')
+    : 'Play again to win more stars.' + (hs.line ? '' : ' Showing the number line can help.');
+  $('hs-done').innerHTML =
+    '<p class="eyebrow">4-digit round complete</p>' +
+    '<h2>' + msg + '</h2>' +
+    starsHTML(k) +
+    '<p>You got <strong>' + hs.score + ' out of ' + hs.round.length + '</strong> right first time' +
+    (hs.line ? '.' : ', without the number line.') + '</p>' +
+    '<p>' + tip + '</p>' +
+    '<div class="row" style="justify-content:center">' +
+    '<button class="btn btn-primary" data-action="hs-again" id="hs-again-btn">Play another round</button>' +
+    '<button class="btn btn-ghost" data-action="go" data-screen="home">All levels</button></div>';
+  renderHundreds();
+  window.scrollTo(0, 0);
+  if (k === 3) confetti();
 }
 
 function hsCheck(text) {
@@ -1313,7 +1381,8 @@ document.addEventListener('click', (e) => {
   else if (a === 'closer') chooseCloser(Number(b.dataset.v));
   else if (a === 'hint') { run.hint = true; renderQuestion(); }
   else if (a === 'next') nextQuestion();
-  else if (a === 'hs-next') { hsNext(); renderHundreds(); }
+  else if (a === 'hs-next') hsNextQuestion();
+  else if (a === 'hs-again') { hsStartRound(); renderHundreds(); window.scrollTo(0, 0); }
   else if (a === 'hs-line') {
     hs.line = !hs.line;
     try { localStorage.setItem(HS_LINE_KEY, hs.line ? 'on' : 'off'); } catch (e) { /* storage blocked */ }

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const src = html.split('// ==LOGIC START==')[1].replace(/^.*\n/, '').split('// ==LOGIC END==')[0];
-const L = new Function(src + '; return { fmt, roundTo, neighbours, isHalfway, decidingDigit, parseAnswer, diagnose, makeLevel, makeHundredsNumber, starsFor, LEVELS };')();
+const L = new Function(src + '; return { fmt, roundTo, neighbours, isHalfway, decidingDigit, parseAnswer, diagnose, makeLevel, makeHundredsNumber, makeHundredsRound, starsFor, LEVELS };')();
 
 // roundTo matches "round half up" for every whole number 0–10,000
 for (const unit of [10, 100, 1000]) {
@@ -83,6 +83,21 @@ for (let trial = 0; trial < 5000; trial++) {
 for (const [k, v] of Object.entries(seen)) assert.ok(v > 100, `4-digit focus has ${k} numbers (${v})`);
 const avoid = [4650, 9950, 5032, 3962];
 for (let trial = 0; trial < 2000; trial++) assert.ok(!avoid.includes(L.makeHundredsNumber(avoid)), 'avoids recent numbers');
+
+// 4-digit rounds: 10 different numbers, each special kind at least once, recent numbers avoided
+for (let trial = 0; trial < 1000; trial++) {
+  const recent = [4650, 9950, 5032, 3962];
+  const round = L.makeHundredsRound(recent);
+  assert.equal(round.length, 10, '4-digit round length');
+  assert.equal(new Set(round).size, 10, '4-digit round numbers are unique');
+  for (const n of round) {
+    assert.ok(n >= 1001 && n <= 9999 && n % 100 !== 0, `4-digit round n: ${n}`);
+    assert.ok(!recent.includes(n), `4-digit round avoids recent ${n}`);
+  }
+  assert.ok(round.some(n => L.isHalfway(n, 100)), '4-digit round has a halfway number');
+  assert.ok(round.some(n => n % 1000 > 950), '4-digit round has a thousand-crossing number');
+  assert.ok(round.some(n => n % 1000 < 100), '4-digit round has a 0-hundreds number');
+}
 
 assert.equal(L.starsFor(10), 3); assert.equal(L.starsFor(9), 3);
 assert.equal(L.starsFor(8), 2); assert.equal(L.starsFor(7), 2);
