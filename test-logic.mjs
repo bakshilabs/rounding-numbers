@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const html = readFileSync(new URL('./index.html', import.meta.url), 'utf8');
 const src = html.split('// ==LOGIC START==')[1].replace(/^.*\n/, '').split('// ==LOGIC END==')[0];
-const L = new Function(src + '; return { fmt, roundTo, neighbours, isHalfway, decidingDigit, parseAnswer, diagnose, makeLevel, makeHundredsNumber, makeHundredsRound, starsFor, LEVELS };')();
+const L = new Function(src + '; return { fmt, roundTo, neighbours, isHalfway, decidingDigit, parseAnswer, diagnose, makeLevel, makeFocusNumber, makeFocusRound, starsFor, LEVELS };')();
 
 // roundTo matches "round half up" for every whole number 0–10,000
 for (const unit of [10, 100, 1000]) {
@@ -70,33 +70,53 @@ for (let trial = 0; trial < 300; trial++) {
   }
 }
 
-// 4-digit focus numbers: 4 digits, never a multiple of 100, every kind of number turns up
-const seen = { halfway: 0, crossesThousand: 0, zeroHundreds: 0 };
-for (let trial = 0; trial < 5000; trial++) {
-  const n = L.makeHundredsNumber();
-  assert.ok(Number.isInteger(n) && n >= 1001 && n <= 9999, `4-digit focus n in range: ${n}`);
-  assert.notEqual(n % 100, 0, `4-digit focus: ${n} is already a multiple of 100`);
-  if (L.isHalfway(n, 100)) seen.halfway++;
-  if (L.roundTo(n, 100) % 1000 === 0 && Math.floor(n / 1000) !== L.roundTo(n, 100) / 1000) seen.crossesThousand++;
-  if (Math.floor(n / 100) % 10 === 0) seen.zeroHundreds++;
+// 4-digit focus numbers: 4 digits, never a multiple of the unit, every kind of number turns up
+const KINDS = {
+  100: {
+    halfway: n => L.isHalfway(n, 100),
+    crossesThousand: n => n % 1000 > 950,
+    zeroHundreds: n => n % 1000 < 100,
+  },
+  1000: {
+    halfway: n => L.isHalfway(n, 1000),
+    crossesTenThousand: n => n > 9500,
+    zeroHundreds: n => n % 1000 < 100,
+    underHalfway: n => n % 1000 >= 450 && n % 1000 < 500,
+  },
+};
+for (const unit of [100, 1000]) {
+  const seen = Object.fromEntries(Object.keys(KINDS[unit]).map(k => [k, 0]));
+  for (let trial = 0; trial < 5000; trial++) {
+    const n = L.makeFocusNumber(unit);
+    assert.ok(Number.isInteger(n) && n >= 1001 && n <= 9999, `nearest ${unit} focus n in range: ${n}`);
+    assert.notEqual(n % unit, 0, `nearest ${unit} focus: ${n} is already a multiple of ${unit}`);
+    for (const [k, test] of Object.entries(KINDS[unit])) if (test(n)) seen[k]++;
+  }
+  for (const [k, v] of Object.entries(seen)) assert.ok(v > 100, `nearest ${unit} focus has ${k} numbers (${v})`);
 }
-for (const [k, v] of Object.entries(seen)) assert.ok(v > 100, `4-digit focus has ${k} numbers (${v})`);
 const avoid = [4650, 9950, 5032, 3962];
-for (let trial = 0; trial < 2000; trial++) assert.ok(!avoid.includes(L.makeHundredsNumber(avoid)), 'avoids recent numbers');
+for (let trial = 0; trial < 2000; trial++) assert.ok(!avoid.includes(L.makeFocusNumber(100, avoid)), 'avoids recent numbers');
 
 // 4-digit rounds: 10 different numbers, each special kind at least once, recent numbers avoided
-for (let trial = 0; trial < 1000; trial++) {
-  const recent = [4650, 9950, 5032, 3962];
-  const round = L.makeHundredsRound(recent);
-  assert.equal(round.length, 10, '4-digit round length');
-  assert.equal(new Set(round).size, 10, '4-digit round numbers are unique');
-  for (const n of round) {
-    assert.ok(n >= 1001 && n <= 9999 && n % 100 !== 0, `4-digit round n: ${n}`);
-    assert.ok(!recent.includes(n), `4-digit round avoids recent ${n}`);
+for (const [unit, recent] of [[100, [4650, 9950, 5032, 3962]], [1000, [4500, 9620, 6078, 4480]]]) {
+  for (let trial = 0; trial < 1000; trial++) {
+    const round = L.makeFocusRound(unit, recent);
+    assert.equal(round.length, 10, `nearest ${unit} round length`);
+    assert.equal(new Set(round).size, 10, `nearest ${unit} round numbers are unique`);
+    for (const n of round) {
+      assert.ok(n >= 1001 && n <= 9999 && n % unit !== 0, `nearest ${unit} round n: ${n}`);
+      assert.ok(!recent.includes(n), `nearest ${unit} round avoids recent ${n}`);
+    }
+    for (const [k, test] of Object.entries(KINDS[unit])) assert.ok(round.some(test), `nearest ${unit} round has a ${k} number`);
   }
-  assert.ok(round.some(n => L.isHalfway(n, 100)), '4-digit round has a halfway number');
-  assert.ok(round.some(n => n % 1000 > 950), '4-digit round has a thousand-crossing number');
-  assert.ok(round.some(n => n % 1000 < 100), '4-digit round has a 0-hundreds number');
+}
+
+// Rounds keep coming even when recent rounds have used up all nine X,500 numbers
+const allHalfway = [1500, 2500, 3500, 4500, 5500, 6500, 7500, 8500, 9500];
+for (let trial = 0; trial < 200; trial++) {
+  const round = L.makeFocusRound(1000, allHalfway);
+  assert.equal(new Set(round).size, 10, 'round is unique when halfway numbers are used up');
+  assert.ok(round.some(n => L.isHalfway(n, 1000)), 'round still has a halfway number');
 }
 
 assert.equal(L.starsFor(10), 3); assert.equal(L.starsFor(9), 3);
